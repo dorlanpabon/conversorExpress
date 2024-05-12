@@ -4,8 +4,19 @@ const port = 3000
 // Get the client
 const mysql = require('mysql2/promise');
 const cors = require('cors')
+const session = require('express-session')
 
-app.use(cors())
+
+app.use(cors(
+  {
+    origin: 'http://localhost:5173',
+    credentials: true,
+  }
+))
+
+app.use(session({
+  secret: 'asdflk232398xzzlk23ñ23+23¿4322389sdl21'
+}))
 
 // Create the connection to database
 const connection = mysql.createPool({
@@ -20,6 +31,7 @@ async function login(req, res) { //req peticion, res respuesta
   const [filas] = await connection.query("SELECT * FROM `usuarios` WHERE `usuario` = '" + datos.usuario + "' AND `contraseña` = '" + datos.clave + "'")
 
   if (filas.length == 1) {
+    req.session.usuario = datos.usuario
     res.status(200).json({ logueado: true })
   } else {
     res.status(401).json({ error: 'Usuario o contraseña incorrectos' })
@@ -27,6 +39,21 @@ async function login(req, res) { //req peticion, res respuesta
 }
 
 app.get('/login', login)
+
+function validar(req, res) {
+  if (req.session.usuario) {
+    res.status(200).json({ logueado: true })
+  } else {
+    res.status(401).json({ error: 'Usuario no logueado' })
+  }
+}
+
+app.get('/validar', validar)
+
+app.get('/cerrar', (req, res) => {
+  req.session.destroy()
+  res.status(200).json({ logueado: false })
+})
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
